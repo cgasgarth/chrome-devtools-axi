@@ -41,16 +41,7 @@ snapshot:
 **Tell your agent:**
 
 ```
-Execute `npm install -g chrome-devtools-axi` and run the command for browser automation.
-```
-
-**From source**
-
-```sh
-git clone https://github.com/kunchenguid/chrome-devtools-axi.git
-cd chrome-devtools-axi
-npm install && npm run build
-npm link
+Execute `npm i -g chrome-devtools-axi` and run `chrome-devtools-axi` for browser automation.
 ```
 
 ## How It Works
