@@ -9,9 +9,9 @@
   <a href="https://discord.gg/BW4aJuQhTf"><img alt="Discord" src="https://img.shields.io/discord/1439901831038763092?style=flat-square&label=discord" /></a>
 </p>
 
-<h3 align="center">Highly agent-ergonomic browser automation</h3>
+<h3 align="center">The most agent-ergonomic browser automation</h3>
 
-`chrome-devtools-axi` wraps [chrome-devtools-mcp](https://www.npmjs.com/package/chrome-devtools-mcp) with an [AXI](https://axi.md)-compliant CLI. Every command returns a compact accessibility snapshot with just enough context and a hint about what to do next.
+`chrome-devtools-axi` wraps [chrome-devtools-mcp](https://www.npmjs.com/package/chrome-devtools-mcp) with an [AXI](https://axi.md)-compliant CLI.
 
 - **Token-efficient** — TOON-encoded output cuts token usage ~40% vs raw JSON
 - **Combined operations** — one command navigates, captures, and suggests next steps

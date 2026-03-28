@@ -4,6 +4,7 @@
  * Idempotently registers a SessionStart hook in both:
  *   - Claude Code: ~/.claude/settings.json
  *   - Codex CLI:   ~/.codex/hooks.json
+ *   - Codex CLI:   ~/.codex/config.toml ([features].codex_hooks = true)
  *
  * So agents see browser state at session start.
  */
@@ -45,6 +46,7 @@ export function getHookTargets(): HookTarget[] {
   return [
     { path: join(home, ".claude", "settings.json") },
     { path: join(home, ".codex", "hooks.json") },
+    { path: join(home, ".codex", "config.toml") },
   ];
 }
 
@@ -93,6 +95,72 @@ export function computeHookUpdate(
 }
 
 /**
+ * Pure function: ensure Codex hooks are enabled in config.toml.
+ * Returns [updatedToml, changed].
+ */
+export function computeCodexConfigUpdate(content: string): [string, boolean] {
+  const newline = content.includes("\r\n") ? "\r\n" : "\n";
+  const normalized = content.length === 0 ? "" : content;
+
+  if (normalized.trim().length === 0) {
+    return [`[features]${newline}codex_hooks = true${newline}`, true];
+  }
+
+  const lines = normalized.split(/\r?\n/);
+  const updated = [...lines];
+  let inFeatures = false;
+  let sawFeatures = false;
+
+  for (let i = 0; i < updated.length; i++) {
+    const line = updated[i];
+    const section = line.match(/^\s*(\[{1,2})([^\]]+)(\]{1,2})\s*(?:#.*)?$/);
+
+    if (section) {
+      const isTableHeader = (section[1] === "[" && section[3] === "]")
+        || (section[1] === "[[" && section[3] === "]]");
+      if (!isTableHeader) {
+        continue;
+      }
+
+      const sectionName = section[2].trim();
+      if (inFeatures) {
+        updated.splice(i, 0, "codex_hooks = true");
+        return [updated.join(newline), true];
+      }
+      inFeatures = sectionName === "features";
+      sawFeatures ||= inFeatures;
+      continue;
+    }
+
+    if (!inFeatures) {
+      continue;
+    }
+
+    const flag = line.match(/^(\s*codex_hooks\s*=\s*)(true|false)(\s*(?:#.*)?)$/);
+    if (!flag) {
+      continue;
+    }
+    if (flag[2] === "true") {
+      return [content, false];
+    }
+    updated[i] = `${flag[1]}true${flag[3] ?? ""}`;
+    return [updated.join(newline), true];
+  }
+
+  if (sawFeatures) {
+    const suffix = normalized.endsWith(newline) || normalized.length === 0 ? "" : newline;
+    return [`${normalized}${suffix}codex_hooks = true${newline}`, true];
+  }
+
+  const separator = normalized.endsWith(newline + newline) || normalized.length === 0
+    ? ""
+    : normalized.endsWith(newline)
+      ? newline
+      : `${newline}${newline}`;
+  return [`${normalized}${separator}[features]${newline}codex_hooks = true${newline}`, true];
+}
+
+/**
  * Idempotently install session hooks into all supported agents.
  * Silently does nothing on any error.
  */
@@ -102,6 +170,17 @@ export function installHooks(): void {
 
     for (const target of getHookTargets()) {
       try {
+        mkdirSync(dirname(target.path), { recursive: true });
+
+        if (target.path.endsWith(".toml")) {
+          const content = existsSync(target.path) ? readFileSync(target.path, "utf-8") : "";
+          const [updated, changed] = computeCodexConfigUpdate(content);
+          if (changed) {
+            writeFileSync(target.path, updated);
+          }
+          continue;
+        }
+
         let settings: HookSettings = {};
         if (existsSync(target.path)) {
           settings = JSON.parse(readFileSync(target.path, "utf-8"));
@@ -109,7 +188,6 @@ export function installHooks(): void {
 
         const [updated, changed] = computeHookUpdate(settings, execPath);
         if (changed) {
-          mkdirSync(dirname(target.path), { recursive: true });
           writeFileSync(target.path, JSON.stringify(updated, null, 2) + "\n");
         }
       } catch {

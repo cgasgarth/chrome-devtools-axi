@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeHookUpdate, getHookTargets } from "../src/hooks.js";
+import { computeCodexConfigUpdate, computeHookUpdate, getHookTargets } from "../src/hooks.js";
 
 describe("computeHookUpdate", () => {
   it("installs hook when settings have no hooks", () => {
@@ -78,11 +78,12 @@ describe("computeHookUpdate", () => {
 });
 
 describe("getHookTargets", () => {
-  it("returns both Claude Code and Codex targets", () => {
+  it("returns Claude and both Codex targets", () => {
     const targets = getHookTargets();
-    expect(targets.length).toBe(2);
+    expect(targets.length).toBe(3);
     expect(targets.some((t) => t.path.includes(".claude"))).toBe(true);
-    expect(targets.some((t) => t.path.includes(".codex"))).toBe(true);
+    expect(targets.some((t) => t.path.includes(".codex/hooks.json"))).toBe(true);
+    expect(targets.some((t) => t.path.includes(".codex/config.toml"))).toBe(true);
   });
 
   it("Claude target reads from settings.json", () => {
@@ -93,5 +94,56 @@ describe("getHookTargets", () => {
   it("Codex target reads from hooks.json", () => {
     const codex = getHookTargets().find((t) => t.path.includes(".codex"));
     expect(codex!.path).toMatch(/hooks\.json$/);
+  });
+
+  it("Codex config target reads from config.toml", () => {
+    const codex = getHookTargets().find((t) => t.path.includes(".codex/config.toml"));
+    expect(codex!.path).toMatch(/config\.toml$/);
+  });
+});
+
+describe("computeCodexConfigUpdate", () => {
+  it("creates a features section when config is empty", () => {
+    const [updated, changed] = computeCodexConfigUpdate("");
+    expect(changed).toBe(true);
+    expect(updated).toBe("[features]\ncodex_hooks = true\n");
+  });
+
+  it("adds codex_hooks when features section exists", () => {
+    const [updated, changed] = computeCodexConfigUpdate("[features]\nother = true\n");
+    expect(changed).toBe(true);
+    expect(updated).toContain("[features]");
+    expect(updated).toContain("other = true");
+    expect(updated).toContain("codex_hooks = true");
+  });
+
+  it("repairs codex_hooks when disabled", () => {
+    const [updated, changed] = computeCodexConfigUpdate("[features]\ncodex_hooks = false\n");
+    expect(changed).toBe(true);
+    expect(updated).toContain("codex_hooks = true");
+    expect(updated).not.toContain("codex_hooks = false");
+  });
+
+  it("is a no-op when codex_hooks is already enabled", () => {
+    const original = "[features]\ncodex_hooks = true\n";
+    const [updated, changed] = computeCodexConfigUpdate(original);
+    expect(changed).toBe(false);
+    expect(updated).toBe(original);
+  });
+
+  it("preserves unrelated sections while adding the flag", () => {
+    const [updated, changed] = computeCodexConfigUpdate("[model]\nname = \"gpt-5\"\n");
+    expect(changed).toBe(true);
+    expect(updated).toContain("[model]");
+    expect(updated).toContain("name = \"gpt-5\"");
+    expect(updated).toContain("[features]");
+    expect(updated).toContain("codex_hooks = true");
+  });
+
+  it("inserts before a following array-of-tables header", () => {
+    const input = "[features]\nother = true\n[[profiles]]\nname = \"default\"\n";
+    const [updated, changed] = computeCodexConfigUpdate(input);
+    expect(changed).toBe(true);
+    expect(updated).toBe("[features]\nother = true\ncodex_hooks = true\n[[profiles]]\nname = \"default\"\n");
   });
 });
