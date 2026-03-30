@@ -21,6 +21,9 @@ commands[34]:
   resize <w> <h>, emulate, console, console-get <id>, network,
   network-get [id], lighthouse, perf-start, perf-stop,
   perf-insight <set> <name>, heap <path>, start, stop
+
+tips:
+  Pipe output through grep/head to extract specific data from large pages.
 `;
 
 const COMMAND_HELP: Record<string, string> = {
@@ -151,14 +154,17 @@ examples:
   chrome-devtools-axi wait "Submit"`,
 
   eval: `usage: chrome-devtools-axi eval <js>
-Evaluate JavaScript in the page context.
+Evaluate a JavaScript expression in the page context and return the result.
+The input is wrapped as () => (<js>), so it must be a single expression.
+For multi-statement logic, pass an arrow function or IIFE.
 
 args:
   <js>  JavaScript expression (required)
 
 examples:
   chrome-devtools-axi eval "document.title"
-  chrome-devtools-axi eval "document.querySelectorAll('a').length"`,
+  chrome-devtools-axi eval "document.querySelectorAll('a').length"
+  chrome-devtools-axi eval "(() => { const rows = [...document.querySelectorAll('tr')]; return rows.map(r => r.textContent) })()"`,
 
   run: `usage: chrome-devtools-axi run <<'EOF'
   ...script...
@@ -978,9 +984,17 @@ async function handleWait(args: string[]): Promise<string> {
   return renderOutput(blocks);
 }
 
-/** Wrap JS input in an arrow function for MCP evaluate_script. */
-function wrapJsExpression(js: string): string {
-  return `() => (${js.trim()})`;
+/** Wrap plain JS expressions for MCP evaluate_script, but pass functions through unchanged. */
+export function wrapJsExpression(js: string): string {
+  const trimmed = js.trim();
+  if (
+    /^(async\s*)?(\(.*?\)\s*=>|[a-zA-Z_$][a-zA-Z0-9_$]*\s*=>|function[\s*(])/.test(
+      trimmed,
+    )
+  ) {
+    return trimmed;
+  }
+  return `() => (${trimmed})`;
 }
 
 /** Extract the actual value from MCP evaluate_script response. */
