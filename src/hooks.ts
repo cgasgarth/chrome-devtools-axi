@@ -116,8 +116,9 @@ export function computeCodexConfigUpdate(content: string): [string, boolean] {
     const section = line.match(/^\s*(\[{1,2})([^\]]+)(\]{1,2})\s*(?:#.*)?$/);
 
     if (section) {
-      const isTableHeader = (section[1] === "[" && section[3] === "]")
-        || (section[1] === "[[" && section[3] === "]]");
+      const isTableHeader =
+        (section[1] === "[" && section[3] === "]") ||
+        (section[1] === "[[" && section[3] === "]]");
       if (!isTableHeader) {
         continue;
       }
@@ -136,7 +137,9 @@ export function computeCodexConfigUpdate(content: string): [string, boolean] {
       continue;
     }
 
-    const flag = line.match(/^(\s*codex_hooks\s*=\s*)(true|false)(\s*(?:#.*)?)$/);
+    const flag = line.match(
+      /^(\s*codex_hooks\s*=\s*)(true|false)(\s*(?:#.*)?)$/,
+    );
     if (!flag) {
       continue;
     }
@@ -148,16 +151,21 @@ export function computeCodexConfigUpdate(content: string): [string, boolean] {
   }
 
   if (sawFeatures) {
-    const suffix = normalized.endsWith(newline) || normalized.length === 0 ? "" : newline;
+    const suffix =
+      normalized.endsWith(newline) || normalized.length === 0 ? "" : newline;
     return [`${normalized}${suffix}codex_hooks = true${newline}`, true];
   }
 
-  const separator = normalized.endsWith(newline + newline) || normalized.length === 0
-    ? ""
-    : normalized.endsWith(newline)
-      ? newline
-      : `${newline}${newline}`;
-  return [`${normalized}${separator}[features]${newline}codex_hooks = true${newline}`, true];
+  const separator =
+    normalized.endsWith(newline + newline) || normalized.length === 0
+      ? ""
+      : normalized.endsWith(newline)
+        ? newline
+        : `${newline}${newline}`;
+  return [
+    `${normalized}${separator}[features]${newline}codex_hooks = true${newline}`,
+    true,
+  ];
 }
 
 /**
@@ -174,7 +182,9 @@ export function installHooks(): void {
         mkdirSync(dirname(target.path), { recursive: true });
 
         if (target.path.endsWith(".toml")) {
-          const content = existsSync(target.path) ? readFileSync(target.path, "utf-8") : "";
+          const content = existsSync(target.path)
+            ? readFileSync(target.path, "utf-8")
+            : "";
           const [updated, changed] = computeCodexConfigUpdate(content);
           if (changed) {
             writeFileSync(target.path, updated);
