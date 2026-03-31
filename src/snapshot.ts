@@ -54,9 +54,16 @@ export function truncateSnapshot(
  * Truncate arbitrary text keeping both head and tail so recent/trailing data is preserved.
  * Used for eval output where the end of the result is often as important as the beginning.
  */
+const MARKER_OVERHEAD = 50;
+
 export function truncateText(text: string, limit = 8000): TruncationResult {
   const totalLength = text.length;
   if (totalLength <= limit) {
+    return { text, truncated: false, totalLength };
+  }
+  // The omission marker adds overhead; skip truncation when
+  // the text is short enough that truncating would produce a longer result.
+  if (totalLength <= limit + MARKER_OVERHEAD) {
     return { text, truncated: false, totalLength };
   }
   const headBudget = Math.floor(limit * 0.4);
