@@ -44,7 +44,7 @@ snapshot:
 Execute `npx -y chrome-devtools-axi` to get browser automation tools.
 ```
 
-To install your fork locally:
+To install from a local checkout:
 
 ```sh
 npm install
