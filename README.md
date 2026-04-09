@@ -38,10 +38,21 @@ snapshot:
 
 ## Install
 
-**Tell your agent:**
+For the published upstream package:
 
 ```
 Execute `npx -y chrome-devtools-axi` to get browser automation tools.
+```
+
+This fork is not separately published to npm. If you want the fork's current
+code instead of the upstream package, install from this checkout:
+
+```sh
+git clone https://github.com/cgasgarth/chrome-devtools-axi.git
+cd chrome-devtools-axi
+npm install
+npm run build
+npm install -g .
 ```
 
 ## How It Works
