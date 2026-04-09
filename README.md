@@ -44,6 +44,14 @@ snapshot:
 Execute `npx -y chrome-devtools-axi` to get browser automation tools.
 ```
 
+To install your fork locally:
+
+```sh
+npm install
+npm run build
+npm install -g .
+```
+
 ## How It Works
 
 ```
@@ -145,6 +153,21 @@ chrome-devtools-axi eval "(() => { const rows = [...document.querySelectorAll('t
 | `start` | Start the bridge server |
 | `stop`  | Stop the bridge server  |
 
+`start` persists the chosen browser mode for later commands. This makes it easy
+to switch between the default isolated headless browser, a visible browser
+window, or an existing Chrome session that already exposes DevTools.
+
+```sh
+# Start a visible browser window
+chrome-devtools-axi start --headed
+
+# Auto-connect to a compatible local Chrome session
+chrome-devtools-axi start --autoConnect
+
+# Attach to an existing Chrome / Chromium DevTools endpoint
+chrome-devtools-axi start --browser-url http://127.0.0.1:9222
+```
+
 Running with no command shows the CLI home view. It prepends `bin` and
 `description` metadata, then includes the current snapshot when a browser
 session is active or the no-session status/help block when one is not.
@@ -191,6 +214,22 @@ State is stored in `~/.chrome-devtools-axi/`:
 | File         | Purpose                            |
 | ------------ | ---------------------------------- |
 | `bridge.pid` | PID and port of the running bridge |
+| `bridge-config.json` | Persisted launch / attach settings |
+
+### Browser Mode Overrides
+
+The bridge reads these environment variables when starting:
+
+```sh
+export CHROME_DEVTOOLS_AXI_HEADLESS=false
+export CHROME_DEVTOOLS_AXI_ISOLATED=false
+export CHROME_DEVTOOLS_AXI_AUTO_CONNECT=true
+export CHROME_DEVTOOLS_AXI_BROWSER_URL=http://127.0.0.1:9222
+```
+
+The easiest path is still `chrome-devtools-axi start ...`, which writes the
+same settings to `~/.chrome-devtools-axi/bridge-config.json` for reuse by
+future `open`, `snapshot`, and other commands.
 
 ### Session Hooks
 

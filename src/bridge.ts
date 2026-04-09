@@ -21,6 +21,11 @@ import {
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { homedir } from "node:os";
+import {
+  buildChromeDevtoolsMcpArgs,
+  resolveBridgeLaunchOptions,
+  type BridgeLaunchOptions,
+} from "./bridge-config.js";
 
 const DEFAULT_PORT = Number.parseInt(
   process.env.CHROME_DEVTOOLS_AXI_PORT ?? "9224",
@@ -226,10 +231,12 @@ function writeReadySignal(): void {
   process.stdout.write("READY\n");
 }
 
-function createTransport(): StdioClientTransport {
+export function createTransport(
+  options: BridgeLaunchOptions = resolveBridgeLaunchOptions(),
+): StdioClientTransport {
   return new StdioClientTransport({
     command: "npx",
-    args: ["-y", "chrome-devtools-mcp@latest", "--headless", "--isolated"],
+    args: buildChromeDevtoolsMcpArgs(options),
   });
 }
 

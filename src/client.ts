@@ -9,6 +9,7 @@ import { homedir } from "node:os";
 import { request } from "node:http";
 import { AxiError } from "axi-sdk-js";
 import { resolveBridgeScript } from "./bridge.js";
+import { resolveBridgeLaunchOptions } from "./bridge-config.js";
 
 const STATE_DIR = join(homedir(), ".chrome-devtools-axi");
 const PID_FILE = join(STATE_DIR, "bridge.pid");
@@ -175,7 +176,21 @@ export async function ensureBridge(): Promise<number> {
     runner === "tsx" ? ["tsx", script] : [script],
     {
       stdio: "ignore",
-      env: { ...process.env, CHROME_DEVTOOLS_AXI_PORT: String(port) },
+      env: {
+        ...process.env,
+        CHROME_DEVTOOLS_AXI_PORT: String(port),
+        ...(() => {
+          const options = resolveBridgeLaunchOptions();
+          return {
+            CHROME_DEVTOOLS_AXI_HEADLESS: String(options.headless),
+            CHROME_DEVTOOLS_AXI_ISOLATED: String(options.isolated),
+            CHROME_DEVTOOLS_AXI_AUTO_CONNECT: String(options.autoConnect),
+            ...(options.browserUrl
+              ? { CHROME_DEVTOOLS_AXI_BROWSER_URL: options.browserUrl }
+              : {}),
+          };
+        })(),
+      },
       detached: true,
     },
   );

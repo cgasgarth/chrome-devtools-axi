@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { formatStopOutput, formatScreenshotOutput, getCommandHelp, parseScreenshotArgs } from "../src/cli.js";
+import {
+  formatStopOutput,
+  formatScreenshotOutput,
+  getCommandHelp,
+  parseScreenshotArgs,
+  parseStartArgs,
+} from "../src/cli.js";
 
 describe("formatStopOutput", () => {
   it("returns stopped status when bridge was running", () => {
@@ -79,5 +85,36 @@ describe("formatScreenshotOutput", () => {
   it("includes file path in output", () => {
     const output = formatScreenshotOutput("./shot.png");
     expect(output).toContain("./shot.png");
+  });
+});
+
+describe("parseStartArgs", () => {
+  it("parses headed attach mode", () => {
+    const result = parseStartArgs([
+      "--headed",
+      "--autoConnect",
+      "--browser-url",
+      "http://127.0.0.1:9222",
+      "--shared-profile",
+    ]);
+
+    expect(result).toEqual({
+      headless: false,
+      autoConnect: false,
+      browserUrl: "http://127.0.0.1:9222",
+      isolated: false,
+    });
+  });
+
+  it("parses autoConnect mode", () => {
+    const result = parseStartArgs(["--autoConnect"]);
+
+    expect(result).toEqual({ autoConnect: true });
+  });
+
+  it("rejects a missing browser URL", () => {
+    expect(() => parseStartArgs(["--browser-url"])).toThrow(
+      "Missing browser URL",
+    );
   });
 });

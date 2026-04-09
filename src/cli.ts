@@ -10,6 +10,10 @@ import {
   getSessionSnapshotIfRunning,
   stopBridge,
 } from "./client.js";
+import {
+  mergeBridgeLaunchOptions,
+  writeStoredBridgeLaunchOptions,
+} from "./bridge-config.js";
 import { readStdin, runScript } from "./run.js";
 import {
   countRefs,
@@ -233,11 +237,22 @@ examples:
   console.log("status:", status);
   EOF`,
 
-  start: `usage: chrome-devtools-axi start
-Start the bridge server (launches headless Chrome).
+  start: `usage: chrome-devtools-axi start [--headed|--headless] [--autoConnect] [--browser-url <url>] [--isolated|--shared-profile]
+Start the bridge server with persisted browser settings.
+
+flags:
+  --headed               Launch a visible browser instead of headless mode
+  --headless             Force headless mode
+  --autoConnect          Auto-connect to a compatible local Chrome session
+  --browser-url <url>    Attach to an existing Chrome/Chromium DevTools endpoint
+  --isolated             Launch a fresh isolated browser profile (default)
+  --shared-profile       Launch against the shared local browser profile
 
 examples:
-  chrome-devtools-axi start`,
+  chrome-devtools-axi start
+  chrome-devtools-axi start --headed
+  chrome-devtools-axi start --autoConnect
+  chrome-devtools-axi start --browser-url http://127.0.0.1:9222`,
 
   stop: `usage: chrome-devtools-axi stop
 Stop the bridge server and close the browser.
@@ -1149,9 +1164,68 @@ async function handleEval(args: string[], full: boolean): Promise<string> {
   return renderOutput(blocks);
 }
 
-async function handleStart(): Promise<string> {
+export function parseStartArgs(args: string[]): {
+  headless?: boolean;
+  isolated?: boolean;
+  autoConnect?: boolean;
+  browserUrl?: string;
+} {
+  const parsed: {
+    headless?: boolean;
+    isolated?: boolean;
+    autoConnect?: boolean;
+    browserUrl?: string;
+  } = {};
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === "--headed") {
+      parsed.headless = false;
+      continue;
+    }
+    if (arg === "--headless") {
+      parsed.headless = true;
+      continue;
+    }
+    if (arg === "--isolated") {
+      parsed.isolated = true;
+      continue;
+    }
+    if (arg === "--shared-profile") {
+      parsed.isolated = false;
+      continue;
+    }
+    if (arg === "--autoConnect" || arg === "--auto-connect") {
+      parsed.autoConnect = true;
+      continue;
+    }
+    if (arg === "--browser-url") {
+      const browserUrl = args[++i];
+      if (!browserUrl) {
+        throw new CdpError("Missing browser URL", "VALIDATION_ERROR", [
+          "Run `chrome-devtools-axi start --browser-url http://127.0.0.1:9222` to attach to an existing browser",
+        ]);
+      }
+      parsed.browserUrl = browserUrl;
+      parsed.autoConnect = false;
+      continue;
+    }
+    throw new CdpError(`Unknown start flag: ${arg}`, "VALIDATION_ERROR", [
+      "Run `chrome-devtools-axi start --help` to see supported flags",
+    ]);
+  }
+
+  return parsed;
+}
+
+async function handleStart(args: string[]): Promise<string> {
+  const overrides = parseStartArgs(args);
+  if (Object.keys(overrides).length > 0) {
+    writeStoredBridgeLaunchOptions(mergeBridgeLaunchOptions(overrides));
+    await stopBridge();
+  }
   const port = await ensureBridge();
-  return encode({ status: "ready", port });
+  return encode({ status: "ready", port, ...overrides });
 }
 
 export function formatStopOutput(wasStopped: boolean): string {
@@ -1524,7 +1598,7 @@ const COMMANDS: Record<string, CommandFn> = {
   "perf-stop": withoutFullFlag(handlePerfStop),
   "perf-insight": withoutFullFlag(handlePerfInsight),
   heap: withoutFullFlag(handleHeap),
-  start: async () => handleStart(),
+  start: withoutFullFlag(handleStart),
   stop: async () => handleStop(),
 };
 
