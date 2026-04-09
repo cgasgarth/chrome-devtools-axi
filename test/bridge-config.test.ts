@@ -33,6 +33,7 @@ describe("buildChromeDevtoolsMcpArgs", () => {
       "--isolated",
     ]);
   });
+
   it("builds autoConnect args for a local Chrome session", () => {
     const args = buildChromeDevtoolsMcpArgs({
       headless: true,

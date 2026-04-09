@@ -66,7 +66,7 @@ npm install -g .
            │ stdio
            ▼
 ┌───────────────────────┐
-│  chrome-devtools-mcp  │  Headless Chrome via DevTools Protocol
+│  chrome-devtools-mcp  │  Launch or attach to Chrome via DevTools Protocol
 └───────────────────────┘
 ```
 
@@ -168,6 +168,9 @@ chrome-devtools-axi start --autoConnect
 chrome-devtools-axi start --browser-url http://127.0.0.1:9222
 ```
 
+`--autoConnect` depends on Chrome's remote debugging server already being
+enabled from `chrome://inspect/#remote-debugging`.
+
 Running with no command shows the CLI home view. It prepends `bin` and
 `description` metadata, then includes the current snapshot when a browser
 session is active or the no-session status/help block when one is not.
@@ -179,6 +182,12 @@ session is active or the no-session status/help block when one is not.
 | `--help`                    | Show usage information                      |
 | `-v`, `-V`, `--version`     | Show the installed CLI version              |
 | `--full`                    | Show complete output without truncation     |
+| `--headed`                  | Launch a visible browser window (start)     |
+| `--headless`                | Force headless mode (start)                 |
+| `--autoConnect`             | Auto-connect to a local Chrome session (start) |
+| `--browser-url <url>`       | Attach to a specific DevTools endpoint (start) |
+| `--isolated`                | Launch with a temporary isolated profile (start) |
+| `--shared-profile`          | Launch against the shared local profile (start) |
 | `--background`              | Open new page in background (newpage)       |
 | `--uid @<uid>`              | Target a specific element (screenshot)      |
 | `--full-page`               | Capture entire scrollable page (screenshot) |
@@ -230,6 +239,9 @@ export CHROME_DEVTOOLS_AXI_BROWSER_URL=http://127.0.0.1:9222
 The easiest path is still `chrome-devtools-axi start ...`, which writes the
 same settings to `~/.chrome-devtools-axi/bridge-config.json` for reuse by
 future `open`, `snapshot`, and other commands.
+
+When both `CHROME_DEVTOOLS_AXI_AUTO_CONNECT` and
+`CHROME_DEVTOOLS_AXI_BROWSER_URL` are set, the explicit `browserUrl` wins.
 
 ### Session Hooks
 
