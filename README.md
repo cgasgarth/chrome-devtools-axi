@@ -44,14 +44,6 @@ snapshot:
 Execute `npx -y chrome-devtools-axi` to get browser automation tools.
 ```
 
-To install from a local checkout:
-
-```sh
-npm install
-npm run build
-npm install -g .
-```
-
 ## How It Works
 
 ```
